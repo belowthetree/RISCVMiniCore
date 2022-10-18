@@ -25,3 +25,4 @@ extern "C" fn abort() -> !{
         }
     }
 }
+use core::arch::asm;

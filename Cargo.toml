@@ -8,3 +8,6 @@ edition = "2018"
 
 
 [dependencies]
+
+[build]
+target="riscv64gc-unknown-none-elf"

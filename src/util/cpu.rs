@@ -40,3 +40,4 @@ pub fn wait_for_int() {
         )
     }
 }
+use core::arch::asm;

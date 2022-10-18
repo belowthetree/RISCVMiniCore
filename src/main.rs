@@ -1,13 +1,10 @@
 #![no_std]
 #![no_main]
 #![feature(
-    asm,
     panic_info_message,
     lang_items,
-    untagged_unions,
     core_intrinsics,
     const_fn_trait_bound,
-    global_asm,
 )]
 
 global_asm!(include_str!("asm/boot.S"));
@@ -34,3 +31,4 @@ mod interrupt;
 mod util;
 pub use util::cpu;
 pub use driver::uart;
+use core::arch::global_asm;

@@ -29,6 +29,8 @@ pub struct Environment{
     pub hartid  :     usize,      // 528
 }
 
+pub static mut ENVS : [Environment;4] = [Environment::new();4];
+
 impl Environment {
     pub const fn new() -> Self {
         Self {
@@ -45,4 +47,3 @@ impl Environment {
     }
 }
 
-pub static mut ENVS : [Environment;4] = [Environment::new();4];
