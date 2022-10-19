@@ -1,8 +1,10 @@
 use crate::cpu;
 use self::environment::Environment;
-pub mod mtrap;
-pub mod environment;
+
+mod mtrap;
+mod strap;
 mod exception;
+pub mod environment;
 
 pub fn init(hartid : usize) {
     unsafe {

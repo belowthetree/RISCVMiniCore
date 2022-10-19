@@ -1,6 +1,6 @@
 //! 中断过程中的环境
 
-#[allow(dead_code)]
+#![allow(dead_code)]
 enum Register{
     RA = 1,
     SP = 2,
