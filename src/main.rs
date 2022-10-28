@@ -52,9 +52,9 @@ extern "C" fn kernel_init() {
     println!("{}", OSSIGN);
     interrupt::init(0);
     memory::init();
+    println!("{:x}", cpu::read_mscratch());
     cpu::dead();
 }
-
 
 
 #[macro_use]
