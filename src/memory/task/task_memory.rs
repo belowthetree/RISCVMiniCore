@@ -4,10 +4,9 @@
 
 use core::cmp::{max, min};
 
-use crate::{filesystem::elf::ElfManager, memory::{config::{DATA_START, HEAP_START, KERNEL_PAGE_NUM, MEMORY_START, PAGE_SIZE, RODATA_END}, get_manager, map::SATP}};
+use crate::{memory::{config::{DATA_START, HEAP_START, KERNEL_PAGE_NUM, MEMORY_START, PAGE_SIZE, RODATA_END}, map::SATP, kernel_page, user_page, free_page}};
 
 use alloc::vec::Vec;
-use tisu_memory::MemoryOp;
 
 extern "C" {
     fn thread_exit();
@@ -84,8 +83,8 @@ impl Area {
     }
 
     pub fn rtc_area()->Self {
-        let st = crate::rtc::BASE_ADDR / PAGE_SIZE * PAGE_SIZE;
-        let ed = (crate::rtc::BASE_ADDR + PAGE_SIZE - 1) / PAGE_SIZE * PAGE_SIZE;
+        let st = crate::driver::rtc::BASE_ADDR / PAGE_SIZE * PAGE_SIZE;
+        let ed = (crate::driver::rtc::BASE_ADDR + PAGE_SIZE - 1) / PAGE_SIZE * PAGE_SIZE;
         Self {
             vst : st,
             pst : st,
@@ -166,9 +165,8 @@ impl ProgramArea {
         self.area.push(area);
     }
 
-    pub fn push_elf(&mut self, elf : &mut ElfManager) {
+    /* pub fn push_elf(&mut self, elf : &mut ElfManager) {
         elf.reset();
-        let mgr = get_manager();
         while let Some(ph) = elf.next_ph() {
             if !ph.is_loadable() {
                 continue;
@@ -176,7 +174,7 @@ impl ProgramArea {
             let va = ph.va();
             let offset = ph.va() % PAGE_SIZE;
             let num = (ph.size() + offset + PAGE_SIZE - 1) / PAGE_SIZE;
-            let pa = if self.is_kernel{mgr.kernel_page(num)}else{mgr.user_page(num)};
+            let pa = if self.is_kernel{kernel_page(num)}else{user_page(num)};
             let pa = pa.unwrap();
             unsafe {pa.add(offset).copy_from(elf.get_addr(ph.offset()), ph.size())}
             let pa = pa as usize;
@@ -195,7 +193,7 @@ impl ProgramArea {
         else {
             self.push_area(Area::user_func());
         }
-    }
+    } */
 
     pub fn map(&self, satp : &SATP) {
         for area in self.area.iter() {
@@ -236,14 +234,13 @@ impl ProgramArea {
 
 impl Drop for ProgramArea {
     fn drop(&mut self) {
-        let mgr = get_manager();
         for area in self.area.iter() {
             let addr = area.pst;
             // HEAP_START 以下的地址不是内存分配所得，不需要回收
             if addr < unsafe {HEAP_START} {
                 continue;
             }
-            mgr.free_page(addr as *mut u8);
+            free_page(addr as *mut u8);
         }
     }
 }

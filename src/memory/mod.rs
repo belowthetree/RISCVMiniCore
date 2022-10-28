@@ -1,24 +1,27 @@
 //! # 内存管理
 //! 内存分为物理内存、虚拟内存管理
-//! 目前内存分配以页面为基础，然后形成内存池
+//! 基础内存分配使用外部的内存管理器（默认 tisu-memory），在此基础上实现 stack、heap、program_memory
 //! 程序的内存申请交由堆内存进行管理
 //!
 //! 2021年1月25日 zg
+
+#![allow(unused)]
 
 use self::{
 	config::{HEAP_START, KERNEL_PAGE_NUM, MEMORY_END, PAGE_SIZE},
 };
 use core::alloc::{GlobalAlloc, Layout};
 
+mod memory_manager;
+mod task;
 pub mod block;
-pub mod heap_memory;
+pub mod heap;
 pub mod config;
 pub mod map;
 pub mod stack;
-mod memory_manager;
 
 use tisu_memory::MemoryOp;
-//mod program_memory;
+pub use task::*;
 
 //pub use program_memory::*;
 

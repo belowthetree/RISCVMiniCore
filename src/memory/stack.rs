@@ -2,6 +2,8 @@
 //! 在虚拟地址空间向下扩展的内存结构，自动拼接物理页
 //! 2022年10月19日 zgg
 
+#![allow(unused)]
+
 use alloc::vec::Vec;
 use super::map::SATP;
 use super::*;

@@ -11,7 +11,7 @@ pub const MAX_BLOCK_SIZE : usize = 1024 * 16;
 /// 内存池倍率
 pub const POOL_RATE : usize = 16;
 
-pub struct HeapPool {
+pub struct MemoryPool {
     physic_addr : usize,
     pub virtual_base : usize,
     pub virtual_top : usize,
@@ -33,7 +33,7 @@ fn align(n : usize)->usize {
     rt
 }
 
-impl HeapPool {
+impl MemoryPool {
     pub fn new(virtual_addr : usize, block_size : usize, is_kernel : bool)->Self {
         let block_size = align(block_size);
         let size;
@@ -115,7 +115,7 @@ impl HeapPool {
 }
 
 
-impl Drop for HeapPool {
+impl Drop for MemoryPool {
     fn drop(&mut self) {
         free_page(self.physic_addr as *mut u8);
     }

@@ -22,8 +22,8 @@ impl Register {
 #[allow(dead_code)]
 #[derive(Copy, Clone, Debug)]
 pub struct Environment{
-    regs    :     [usize;32], // 0 ~ 255
-    fregs   :     [usize;32], // 256 ~ 511
+    pub regs    :     [usize;32], // 0 ~ 255
+    pub fregs   :     [usize;32], // 256 ~ 511
     pub satp    :     usize,      // 512
     pub epc     :     usize,      // 520
     pub hartid  :     usize,      // 528
@@ -44,6 +44,21 @@ impl Environment {
 
     pub fn ra(&self)->usize {
         self.regs[Register::RA.val()]
+    }
+    pub fn a1(&self)->usize {
+        self.regs[Register::A1.val()]
+    }
+    pub fn a2(&self)->usize {
+        self.regs[Register::A2.val()]
+    }
+    pub fn a3(&self)->usize {
+        self.regs[Register::A3.val()]
+    }
+    pub fn a4(&self)->usize {
+        self.regs[Register::A4.val()]
+    }
+    pub fn a5(&self)->usize {
+        self.regs[Register::A5.val()]
     }
 }
 

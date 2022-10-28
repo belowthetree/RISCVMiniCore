@@ -11,6 +11,9 @@ test = false
 
 [dependencies]
 tisu-memory = { git = "https://gitee.com/TisuOS/tisu-memory", tag = "v3.1" }
+tisu-sync = { git = "https://gitee.com/TisuOS/tisu-sync", tag = "v3.0" }
+
+macro_derive = { path = "./macro_derive" }
 
 [build]
 target="riscv64gc-unknown-none-elf"

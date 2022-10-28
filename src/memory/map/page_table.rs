@@ -14,16 +14,14 @@ impl PTE {
     pub fn is_valid(&self) -> bool {
         self.flag & PageBit::Valid.val() != 0
     }
-    pub fn set_node_ppn(&mut self, ppn : u64){
+    pub fn set_ppn(&mut self, ppn : u64){
         self.flag = (self.flag & 0x3ff) | ((ppn >> 12) << 10);
     }
-    pub fn set_leaf_ppn(&mut self, ppn : u64){
-        self.flag = (self.flag & 0x3ff) | ((ppn >> 12) << 10);
-    }
+    /// 获取物理地址
     pub fn get_ppn(&self) -> usize {
         ((self.flag & !0x3ff) << 2) as usize
     }
-    pub fn set_flag(&mut self, flag : u64){
+    pub fn set_pte(&mut self, flag : u64){
         self.flag |= flag;
     }
     pub fn set_valid(&mut self){
@@ -101,8 +99,8 @@ impl PageTable {
         let pte_first = &mut self.entry[vpn[0]];
         if !pte_first.is_valid() {
             let addr = kernel_page(1).unwrap();
-            pte_first.set_node_ppn(addr as u64);
-            pte_first.set_flag(flag &
+            pte_first.set_ppn(addr as u64);
+            pte_first.set_pte(flag &
                 !PageBit::Read.val() & !PageBit::Write.val() & !PageBit::Excute.val());
             pte_first.set_valid();
             if virtual_addr == 0x1170c {
@@ -114,8 +112,8 @@ impl PageTable {
         
         if !pte_mid.is_valid() {
             let addr = kernel_page(1).unwrap();
-            pte_mid.set_node_ppn(addr as u64);
-            pte_mid.set_flag(flag &
+            pte_mid.set_ppn(addr as u64);
+            pte_mid.set_pte(flag &
                 !PageBit::Read.val() & !PageBit::Write.val() & !PageBit::Excute.val());
             pte_mid.set_valid();
             if virtual_addr == 0x1170c {
@@ -125,8 +123,8 @@ impl PageTable {
         let table_final = unsafe {&mut *(pte_mid.get_ppn() as *mut Self)};
         let pte_final = &mut table_final.entry[vpn[2]];
         pte_final.flag = 0;
-        pte_final.set_leaf_ppn(physic_addr as u64);
-        pte_final.set_flag(flag);
+        pte_final.set_ppn(physic_addr as u64);
+        pte_final.set_pte(flag);
         pte_final.set_valid();
         if virtual_addr == 0x1170c {
             println!("final ppn {:x} {:x}", pte_final.flag, self.get_target(virtual_addr));

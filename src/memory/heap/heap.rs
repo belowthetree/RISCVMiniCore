@@ -10,21 +10,21 @@ use crate::{memory::map::SATP};
 
 pub const MAX_HEAP_SIZE : usize = 1024;
 
-use super::heap_pool::HeapPool;
+use super::memory_pool::MemoryPool;
 
 /// ## 链接同一个进程的所有堆内存
 #[allow(dead_code)]
-pub struct TaskHeap{
+pub struct Heap{
     /// 记录堆开始的虚拟地址
     virtual_heap_start : usize,
     virtual_heap_top : usize,
-    memory_area : Vec<HeapPool>,
+    memory_area : Vec<MemoryPool>,
     is_kernel : bool,
 }
 
 
 /// 以虚拟地址交互，不涉及物理地址
-impl TaskHeap {
+impl Heap {
     /// 根据大小新建一个，结构体本身存放在内核堆内存里，用户所需在用户内存中申请
     pub fn new(virtual_heap_start : usize, is_kernel : bool)->Self {
         Self {
@@ -68,7 +68,7 @@ impl TaskHeap {
     }
 
     fn expand(&mut self, size : usize, satp : &SATP) {
-        let pool = HeapPool::new(
+        let pool = MemoryPool::new(
             self.virtual_heap_top, size, self.is_kernel);
         pool.map(satp);
         self.virtual_heap_top += pool.total_size;

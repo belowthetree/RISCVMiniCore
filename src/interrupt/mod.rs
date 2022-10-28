@@ -4,6 +4,7 @@ use self::environment::Environment;
 mod mtrap;
 mod strap;
 mod exception;
+pub mod timer;
 pub mod environment;
 
 pub fn init(hartid : usize) {
