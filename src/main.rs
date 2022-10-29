@@ -63,7 +63,7 @@ mod panic;
 mod interrupt;
 mod util;
 mod memory;
-//mod task;
+mod task;
 //mod filesystem;
 
 pub use util::cpu;

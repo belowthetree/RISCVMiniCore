@@ -17,16 +17,9 @@ mod tests {
 extern crate proc_macro;
 extern crate alloc;
 
-#[macro_use]
-mod cpu;
 use alloc::{borrow::ToOwned, string::ToString};
 use proc_macro::TokenStream;
 
-
-#[proc_macro_derive(AnswerFn)]
-pub fn derive_answer_fn(_item: TokenStream) -> TokenStream {
-    "fn answer() -> u32 { 42 }".parse().unwrap()
-}
 
 /// 生成 CSR 寄存器写入函数
 #[proc_macro]
