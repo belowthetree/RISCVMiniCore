@@ -58,6 +58,19 @@ impl SATP {
     pub fn is_map(&self)->bool{
         self.get_ppn_addr() != 0
     }
+
+    pub fn print(&self) {
+        if self.is_map() {
+            unsafe {
+                println!("{:x}", self.get_ppn_addr());
+                let pt = self.get_page_table();
+                pt.print(0);
+            }
+        }
+        else {
+            println!("satp no map");
+        }
+    }
 }
 
 /// 操作方法

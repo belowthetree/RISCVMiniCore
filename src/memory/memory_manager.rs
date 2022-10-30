@@ -14,8 +14,9 @@ static mut MANAGER : Option<MemoryManager> = None;
 /// 初始化内存分配范围
 pub fn init() {
 	unsafe {
+		println!("memory {:x} {:x}", HEAP_START / PAGE_SIZE * PAGE_SIZE, MEMORY_END);
 		MANAGER = Some(MemoryManager::new(
-			HEAP_START, KERNEL_PAGE_NUM, PAGE_SIZE, MEMORY_END
+			HEAP_START / PAGE_SIZE * PAGE_SIZE, KERNEL_PAGE_NUM, PAGE_SIZE, MEMORY_END
 		));
 		USER_HEAP_START = HEAP_START + KERNEL_PAGE_NUM * PAGE_SIZE;
 		println!("st {:x}, user {:x}, ed {:x}", HEAP_START, USER_HEAP_START, MEMORY_END);

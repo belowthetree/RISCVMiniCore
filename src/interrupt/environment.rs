@@ -1,7 +1,7 @@
 //! 中断过程中的环境
 
 #![allow(dead_code)]
-enum Register{
+pub enum Register{
     RA = 1,
     SP = 2,
     A0 = 10,
@@ -13,7 +13,7 @@ enum Register{
 }
 
 impl Register {
-    fn val(self)->usize {
+    pub fn val(self)->usize {
         self as usize
     }
 }

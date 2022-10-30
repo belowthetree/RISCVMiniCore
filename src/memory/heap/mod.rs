@@ -6,3 +6,4 @@ mod heap;
 mod memory_pool;
 
 pub use heap::Heap;
+pub use heap::MAX_HEAP_SIZE;

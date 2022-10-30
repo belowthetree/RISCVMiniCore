@@ -6,13 +6,14 @@
 
 
 use alloc::vec::Vec;
-use crate::{memory::map::SATP};
+use crate::{memory::{map::SATP, free_memory}};
 
-pub const MAX_HEAP_SIZE : usize = 1024;
+pub const MAX_HEAP_SIZE : usize = 4096;
 
 use super::memory_pool::MemoryPool;
 
 /// ## 链接同一个进程的所有堆内存
+/// 非底层结构，无需 Drop
 #[allow(dead_code)]
 pub struct Heap{
     /// 记录堆开始的虚拟地址
@@ -67,9 +68,9 @@ impl Heap {
         pool.virt_to_phy(va)
     }
 
-    fn expand(&mut self, size : usize, satp : &SATP) {
+    fn expand(&mut self, block_size : usize, satp : &SATP) {
         let pool = MemoryPool::new(
-            self.virtual_heap_top, size, self.is_kernel);
+            self.virtual_heap_top, block_size, self.is_kernel);
         pool.map(satp);
         self.virtual_heap_top += pool.total_size;
         self.memory_area.push(pool);
@@ -79,4 +80,3 @@ impl Heap {
         assert!(self.virtual_heap_top - self.virtual_heap_start <= MAX_HEAP_SIZE);
     }
 }
-

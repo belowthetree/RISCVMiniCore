@@ -5,8 +5,12 @@
 #![allow(unused)]
 
 use alloc::vec::Vec;
+use super::heap::MAX_HEAP_SIZE;
 use super::map::SATP;
 use super::*;
+
+pub const MAX_STACK_PAGE : usize = 64;
+pub const STACK_PAGE_NUM : usize = 16;
 
 /// 用于描述栈区域从物理地址到虚拟地址的映射
 #[derive(Debug, Clone, Copy)]
@@ -39,21 +43,33 @@ impl StackArea {
 /// 描述完整栈信息
 /// TODO 添加调用回溯功能
 pub struct Stack {
-    stack_top : usize,
-    stack_bottom : usize,
-    last_page : usize,      /// 栈剩余可使用的页面
-    is_kernel : bool,
+    pub stack_top : usize,
+    pub stack_bottom : usize,
+    pub last_page : usize,      /// 栈剩余可使用的页面
+    pub is_kernel : bool,
     area : Vec<StackArea>,
 }
 
 impl Stack {
-    pub fn new(tid : usize, virtual_stack_top : usize, max_page : usize, is_kernel : bool)->Self {
+    pub fn new(virtual_stack_top : usize, max_page : usize, is_kernel : bool)->Self {
         Self {
             stack_top : virtual_stack_top,
             stack_bottom : virtual_stack_top,
             is_kernel,
             last_page : max_page,
             area : Vec::new(),
+        }
+    }
+    /// 根据 tid 分配栈顶地址
+    pub fn task_stack(tid : usize, is_kernel : bool)->Self {
+        let heap_end = unsafe {(MEMORY_END + PAGE_SIZE - 1)} / PAGE_SIZE * PAGE_SIZE + MAX_HEAP_SIZE;
+        let stack_top = heap_end + (tid + 1) * MAX_STACK_PAGE * 2 * PAGE_SIZE;
+        Self {
+            stack_top,
+            stack_bottom: stack_top,
+            last_page: STACK_PAGE_NUM,
+            is_kernel,
+            area: Vec::new(),
         }
     }
 
@@ -71,11 +87,11 @@ impl Stack {
         }
         if let Some(addr) = addr {
             let ved = self.stack_bottom;
-            let t = page_num * PAGE_SIZE;
-            self.stack_bottom -= t;
+            let size = page_num * PAGE_SIZE;
+            self.stack_bottom -= size;
             let mut vst = self.stack_bottom;
             let mut pst = addr as usize;
-            self.area.push(StackArea::new(vst, ved, pst, pst + t));
+            self.area.push(StackArea::new(vst, ved, pst, pst + size));
             while vst < ved {
                 satp.map_data(vst, pst, self.is_kernel);
                 vst += PAGE_SIZE;

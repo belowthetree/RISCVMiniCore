@@ -42,6 +42,7 @@ const OSSIGN : &str =
       ..                                  .....                                      ..
 ";
 
+
 #[no_mangle]
 extern "C" fn kernel_start(hartid : usize) {
     interrupt::init(hartid);
@@ -52,8 +53,14 @@ extern "C" fn kernel_init() {
     println!("{}", OSSIGN);
     interrupt::init(0);
     memory::init();
-    println!("{:x}", cpu::read_mscratch());
+    task::init(kernel_task as usize);
+	println!("start kernel task fail");
     cpu::dead();
+}
+
+pub fn kernel_task() {
+	println!("start kernel task");
+	cpu::dead();
 }
 
 
@@ -66,6 +73,7 @@ mod memory;
 mod task;
 //mod filesystem;
 
+use interrupt::environment::Environment;
 pub use util::cpu;
 pub use driver::uart;
 pub use alloc::string::ToString;

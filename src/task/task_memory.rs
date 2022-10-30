@@ -3,9 +3,7 @@
 //! 2021年4月29日 zg
 
 use core::cmp::{max, min};
-
-use crate::{memory::{config::{DATA_START, HEAP_START, KERNEL_PAGE_NUM, MEMORY_START, PAGE_SIZE, RODATA_END}, map::SATP, kernel_page, user_page, free_page}};
-
+use crate::{memory::{config::{DATA_START, HEAP_START, KERNEL_PAGE_NUM, MEMORY_START, PAGE_SIZE, RODATA_END}, map::SATP, free_page}};
 use alloc::vec::Vec;
 
 extern "C" {
@@ -133,7 +131,7 @@ impl Area {
         }
     }
 
-    pub fn contain(&self, va:usize)->bool {
+    pub fn contains(&self, va:usize)->bool {
         self.vst <= va && self.ved > va
     }
 
@@ -142,19 +140,29 @@ impl Area {
     }
 }
 
-pub struct ProgramArea {
+pub struct TaskArea {
     entry : usize,
-    area : Vec<Area>,
+    areas : Vec<Area>,
     pub is_kernel : bool
 }
 
-impl ProgramArea {
+impl TaskArea {
     pub fn new(entry:usize, is_kernel : bool)->Self {
         Self {
             entry,
-            area : Vec::new(),
+            areas : Vec::new(),
             is_kernel
         }
+    }
+    pub fn kernel_area(entry:usize)->Self {
+        let mut slf = Self::new(entry, true);
+        slf.push_area(Area::kernel_code());
+        slf.push_area(Area::kernel_data());
+        slf.push_area(Area::virtio_area());
+        slf.push_area(Area::timer_area());
+        slf.push_area(Area::rtc_area());
+        slf.push_area(Area::test_area());
+        slf
     }
 
     pub fn entry(&self)->usize {
@@ -162,7 +170,7 @@ impl ProgramArea {
     }
 
     pub fn push_area(&mut self, area : Area) {
-        self.area.push(area);
+        self.areas.push(area);
     }
 
     /* pub fn push_elf(&mut self, elf : &mut ElfManager) {
@@ -196,7 +204,7 @@ impl ProgramArea {
     } */
 
     pub fn map(&self, satp : &SATP) {
-        for area in self.area.iter() {
+        for area in self.areas.iter() {
             let mut vst = area.vst;
             let mut pst = area.pst;
             while vst < area.ved && pst < area.ped {
@@ -218,23 +226,23 @@ impl ProgramArea {
 
     pub fn virt_to_phy(&self, va:usize)->usize {
         // println!("va {:x}", va);
-        let area = self.area.iter().find(|area| {
+        let area = self.areas.iter().find(|area| {
             // println!("vst {:x} ved {:x}", area.vst, area.ved);
-            area.contain(va)
+            area.contains(va)
         }).unwrap();
         area.virt_to_phy(va)
     }
 
-    pub fn contain(&self, va:usize)->bool {
-        self.area.iter().find(|area| {
-            area.contain(va)
+    pub fn contains(&self, va:usize)->bool {
+        self.areas.iter().find(|area| {
+            area.contains(va)
         }).is_some()
     }
 }
 
-impl Drop for ProgramArea {
+impl Drop for TaskArea {
     fn drop(&mut self) {
-        for area in self.area.iter() {
+        for area in self.areas.iter() {
             let addr = area.pst;
             // HEAP_START 以下的地址不是内存分配所得，不需要回收
             if addr < unsafe {HEAP_START} {

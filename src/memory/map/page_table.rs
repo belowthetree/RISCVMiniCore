@@ -1,8 +1,11 @@
 //! # 页表管理器
 //!
 //! 2021年4月 zg
+#![allow(unaligned_references)]
 
+use tisu_memory::MemoryOp;
 use crate::memory::{kernel_page, free_page};
+
 use super::pagebit::PageBit;
 
 #[derive(Copy, Clone)]
@@ -14,14 +17,16 @@ impl PTE {
     pub fn is_valid(&self) -> bool {
         self.flag & PageBit::Valid.val() != 0
     }
-    pub fn set_ppn(&mut self, ppn : u64){
+    pub fn set_node_ppn(&mut self, ppn : u64){
         self.flag = (self.flag & 0x3ff) | ((ppn >> 12) << 10);
     }
-    /// 获取物理地址
+    pub fn set_leaf_ppn(&mut self, ppn : u64){
+        self.flag = (self.flag & 0x3ff) | ((ppn >> 12) << 10);
+    }
     pub fn get_ppn(&self) -> usize {
         ((self.flag & !0x3ff) << 2) as usize
     }
-    pub fn set_pte(&mut self, flag : u64){
+    pub fn set_flag(&mut self, flag : u64){
         self.flag |= flag;
     }
     pub fn set_valid(&mut self){
@@ -33,6 +38,7 @@ impl PTE {
 /// ## 页表
 /// Rv39 页表，本身占据一个页表（默认4KB）的大小
 /// 分为三级，页表地址必须以一个页表的大小对齐
+#[repr(packed)]
 pub struct PageTable{
     entry : [PTE; 512],
 }
@@ -99,36 +105,27 @@ impl PageTable {
         let pte_first = &mut self.entry[vpn[0]];
         if !pte_first.is_valid() {
             let addr = kernel_page(1).unwrap();
-            pte_first.set_ppn(addr as u64);
-            pte_first.set_pte(flag &
+            pte_first.set_flag(flag &
                 !PageBit::Read.val() & !PageBit::Write.val() & !PageBit::Excute.val());
+            pte_first.set_node_ppn(addr as u64);
             pte_first.set_valid();
-            if virtual_addr == 0x1170c {
-                println!("first ppn {:x}", addr as usize);
-            }
         }
         let table_mid = unsafe {&mut *(pte_first.get_ppn() as *mut Self)};
         let pte_mid = &mut table_mid.entry[vpn[1]];
         
         if !pte_mid.is_valid() {
             let addr = kernel_page(1).unwrap();
-            pte_mid.set_ppn(addr as u64);
-            pte_mid.set_pte(flag &
+            pte_mid.set_flag(flag &
                 !PageBit::Read.val() & !PageBit::Write.val() & !PageBit::Excute.val());
+            pte_mid.set_node_ppn(addr as u64);
             pte_mid.set_valid();
-            if virtual_addr == 0x1170c {
-                println!("second ppn {:x}", addr as usize);
-            }
         }
         let table_final = unsafe {&mut *(pte_mid.get_ppn() as *mut Self)};
         let pte_final = &mut table_final.entry[vpn[2]];
         pte_final.flag = 0;
-        pte_final.set_ppn(physic_addr as u64);
-        pte_final.set_pte(flag);
+        pte_final.set_leaf_ppn(physic_addr as u64);
+        pte_final.set_flag(flag);
         pte_final.set_valid();
-        if virtual_addr == 0x1170c {
-            println!("final ppn {:x} {:x}", pte_final.flag, self.get_target(virtual_addr));
-        }
     }
 
     pub fn free(&mut self){
@@ -144,7 +141,7 @@ impl PageTable {
                         //     let pte = next_table.entry[k];
                         //     if pte.is_valid(){
                         //         println!("pte {:x}", pte.get_ppn());
-                        //         free_page(pte.get_ppn() as *mut u8);
+                        //         get_manager().free_page(pte.get_ppn() as *mut u8);
                         //     }
                         // }
                         free_page(pte.get_ppn() as *mut u8);
@@ -156,5 +153,21 @@ impl PageTable {
         let addr = self as *mut Self;
 
         free_page(addr as *mut u8);
+    }
+
+    pub fn print(&self, level : usize) {
+        for i in 0..512 {
+            let pte = &self.entry[i];
+            if pte.is_valid() {
+                for _ in 0..level {
+                    print!(" ");
+                }
+                println!("{:x} {:x}", i, pte.get_ppn());
+                if level < 2 {
+                    let pt = unsafe {&mut *(pte.get_ppn() as *mut Self)};
+                    pt.print(level + 1);
+                }
+            }
+        }
     }
 }

@@ -1,20 +1,100 @@
 //! # 任务池
 //! 2022年10月29日 zgg
 
-use alloc::{collections::BTreeMap, vec::Vec};
+use core::arch::global_asm;
+use alloc::{collections::BTreeMap, vec, task, string::{String, ToString}};
 use tisu_sync::*;
-use super::{process::Process, thread::Thread};
+use crate::{interrupt::environment::{Environment, Register}, memory::{map::SATP, heap::Heap, config::MEMORY_END, stack::{Stack, STACK_PAGE_NUM}}, task::task_memory::Area};
+use super::{task_info::{TaskMainInfo, TaskExecutionInfo, TaskState}, task_memory::TaskArea, task_resource::TaskResource};
+
+static mut PID_COUNT : AtomCounter = AtomCounter::new();
+static mut TID_COUNT : AtomCounter = AtomCounter::new();
+
+extern "C" {
+    fn process_exit();
+}
+global_asm!(include_str!("../asm/func.S"));
 
 pub struct TaskPool {
-    process : ContentMutex<BTreeMap<usize, Process>>,
-    thread : ContentMutex<BTreeMap<usize, Thread>>,
+    task_main_infos : ContentMutex<BTreeMap<usize, TaskMainInfo>>,
+    task_execution_infos : ContentMutex<BTreeMap<usize, TaskExecutionInfo>>,
 }
 
 impl TaskPool {
     pub fn new()->Self {
         Self {
-            process : ContentMutex::new(BTreeMap::new(), true),
-            thread : ContentMutex::new(BTreeMap::new(), true),
+            task_main_infos : ContentMutex::new(BTreeMap::new(), true),
+            task_execution_infos : ContentMutex::new(BTreeMap::new(), true),
+        }
+    }
+    /// 创建任务，返回任务 ID
+    pub fn create_task(&mut self, mut task_area : TaskArea, mut env : Environment)->Option<usize> {
+        task_area.push_area(Area::kernel_code());
+        task_area.push_area(Area::kernel_data());
+        task_area.push_area(Area::virtio_area());
+        task_area.push_area(Area::timer_area());
+        task_area.push_area(Area::rtc_area());
+        task_area.push_area(Area::test_area());
+        // TODO，添加内存判断，内存不够返回 None
+        let pid = unsafe {PID_COUNT.add() + 1};
+        let tid = unsafe {TID_COUNT.add() + 1};
+        let main_info = TaskMainInfo {
+            pid,
+            satp: SATP::new(),
+            state: TaskState::Sleeping,
+            is_kernel: task_area.is_kernel,
+            tid: vec![tid],
+            heap: Heap::new(unsafe {MEMORY_END}, task_area.is_kernel),
+            task_area,
+            resource: TaskResource::new(pid),
+            join_num: 0,
+        };
+        main_info.task_area.map(&main_info.satp);
+        main_info.task_area.map_kernel_trap(&main_info.satp);
+        if main_info.is_kernel {
+        }
+        env.satp = main_info.satp.flag;
+
+        let mut stack = Stack::task_stack(tid, main_info.is_kernel);
+        if stack.expand(STACK_PAGE_NUM, &main_info.satp) == Err(()) {
+            return None;
+        }
+        env.epc = main_info.task_area.entry();
+        env.regs[Register::SP.val()] = stack.stack_top;
+        env.regs[Register::RA.val()] = process_exit as usize;
+        //println!("satp : {:x}, sp {:x} target {:x} target2 {:x}", main_info.satp.flag, stack.stack_top, main_info.satp.get_target(stack.stack_top), main_info.satp.get_target(stack.stack_top - 1));
+        //main_info.satp.print();
+        let exec_info = TaskExecutionInfo {
+            priority: 0,
+            pid,
+            task_id : tid,
+            state: TaskState::Sleeping,
+            is_kernel: main_info.is_kernel,
+            is_main: true,
+            trigger_time: 0,
+            stack,
+            env,
+        };
+        self.task_main_infos.lock().insert(pid, main_info);
+        self.task_execution_infos.lock().insert(tid, exec_info);
+        Some(tid)
+    }
+
+    pub fn operate_task<Func>(&mut self, task_id : usize, mut operation : Func)->Result<(), String> where Func : FnMut(&mut TaskExecutionInfo)->Result<(), String> {
+        if self.task_execution_infos.lock().contains_key(&task_id) {
+            operation(self.task_execution_infos.lock().get_mut(&task_id).unwrap())
+        }
+        else {
+            Err("No task".to_string())
+        }
+    }
+
+    pub fn get_task_exec_env(&self, task_id : usize)->Option<Environment> {
+        if let Some(t) = self.task_execution_infos.lock().get(&task_id) {
+            Some(t.env)
+        }
+        else {
+            None
         }
     }
 }
