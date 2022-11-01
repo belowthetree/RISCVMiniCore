@@ -1,19 +1,22 @@
 #![allow(dead_code)]
 use core::panic;
 
-use super::{environment::Environment, exception::Exception};
+use super::{environment::Environment};
 
 #[no_mangle]
 extern "C" fn s_trap(hartid : usize, cause : usize, env : &mut Environment, stval : usize)->usize {
-    let exp = Exception::new(cause);
-    println!("into trap hartid: {:x}, stval: {:x}\nenv: {:x?}", hartid, stval, env);
-    if exp.is_sync {
-        match exp.code {
-            _ => panic!("unhandle sync number: {:016x}", exp.code),
+    let is_interrupt = (cause >> 63) != 0;
+    let code = cause & 0xfff;
+
+    println!("into trap hartid: {:x}, stval: {:x}\n{:x}", hartid, stval, cause);
+
+    if is_interrupt {
+        match code {
+            _ => panic!("unhandle sync number: {:016x}", code),
         }
     } else {
-        match exp.code {
-            _ => panic!("unhandle interrupt number: {:016x}", exp.code),
+        match code {
+            _ => panic!("unhandle interrupt number: {:016x}", code),
         }
     }
 }

@@ -60,6 +60,7 @@ extern "C" fn kernel_init() {
 
 pub fn kernel_task() {
 	println!("start kernel task");
+  timer::set_next_timer();
 	cpu::dead();
 }
 
@@ -78,5 +79,7 @@ pub use util::cpu;
 pub use driver::uart;
 pub use alloc::string::ToString;
 use core::arch::global_asm;
+
+use crate::interrupt::timer;
 
 extern crate alloc;

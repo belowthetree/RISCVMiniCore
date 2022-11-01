@@ -1,21 +1,21 @@
 use core::panic;
 
 use crate::cpu;
-
-use super::{environment::Environment, exception::Exception};
+use super::{environment::Environment};
 
 #[no_mangle]
 extern "C" fn m_trap(hartid : usize, cause : usize, env : &mut Environment, mtval : usize)->usize {
-    let exp = Exception::new(cause);
-    println!("into trap hartid: {:x}, mtval: {:x}\nenv: {:x?} cause {:x}", hartid, mtval, env, cause);
+    let is_interrupt = (cause >> 63) != 0;
+    let code = cause & 0xfff;
+    println!("into trap hartid: {:x}, mtval: {:x} cause {:x}", hartid, mtval, cause);
     cpu::dead();
-    if exp.is_sync {
-        match exp.code {
-            _ => panic!("unhandle sync number: {:016x}", exp.code),
+    if is_interrupt {
+        match code {
+            _ => panic!("unhandle sync number: {:016x}", code),
         }
     } else {
-        match exp.code {
-            _ => panic!("unhandle interrupt number: {:016x}", exp.code),
+        match code {
+            _ => panic!("unhandle interrupt number: {:016x}", code),
         }
     }
 }

@@ -74,7 +74,8 @@ impl Stack {
     }
 
     /// 向下扩展栈的逻辑地址，使用物理页拼接并映射
-    pub fn expand(&mut self, page_num : usize, satp : &SATP)->Result<(), ()> {
+    pub fn expand(&mut self, page_num : usize, satp : usize)->Result<(), ()> {
+        let satp = SATP::from(satp);
         if page_num > self.last_page {
             return Err(())
         }

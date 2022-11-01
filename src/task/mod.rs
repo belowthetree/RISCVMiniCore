@@ -41,9 +41,15 @@ pub fn init(entry : usize) {
 	println!("start kernel task fail");
 }
 
-/// 返回任务 id
+/// 创建任务并返回任务 id
 pub fn create_task(entry : usize, is_kernel : bool)->Option<usize> {
-    let task_area = TaskArea::new(entry, is_kernel);
+    let task_area;
+    if is_kernel {
+        task_area = TaskArea::kernel_area(entry);
+    }
+    else {
+        task_area = TaskArea::new(entry, is_kernel)
+    }
     get_manager().task_pool.create_task(task_area, Environment::new())
 }
 

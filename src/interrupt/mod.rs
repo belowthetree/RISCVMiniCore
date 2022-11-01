@@ -3,7 +3,7 @@ use self::environment::Environment;
 
 mod mtrap;
 mod strap;
-mod exception;
+mod handler;
 pub mod timer;
 pub mod environment;
 

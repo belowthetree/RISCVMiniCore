@@ -143,6 +143,7 @@ impl Area {
 pub struct TaskArea {
     entry : usize,
     areas : Vec<Area>,
+    satp : SATP,
     pub is_kernel : bool
 }
 
@@ -151,6 +152,7 @@ impl TaskArea {
         Self {
             entry,
             areas : Vec::new(),
+            satp : SATP::new(),
             is_kernel
         }
     }
@@ -169,59 +171,23 @@ impl TaskArea {
         self.entry
     }
 
+    pub fn satp(&self)->usize {
+        self.satp.flag
+    }
+
     pub fn push_area(&mut self, area : Area) {
+        let mut vst = area.vst;
+        let mut pst = area.pst;
+        while vst < area.ved && pst < area.ped {
+            match area.atype {
+                AreaType::Code => self.satp.map_code(vst, pst, self.is_kernel),
+                AreaType::Data => self.satp.map_data(vst, pst, self.is_kernel),
+                AreaType::All => self.satp.map_all(vst, pst, self.is_kernel)
+            }
+            vst += PAGE_SIZE;
+            pst += PAGE_SIZE;
+        }
         self.areas.push(area);
-    }
-
-    /* pub fn push_elf(&mut self, elf : &mut ElfManager) {
-        elf.reset();
-        while let Some(ph) = elf.next_ph() {
-            if !ph.is_loadable() {
-                continue;
-            }
-            let va = ph.va();
-            let offset = ph.va() % PAGE_SIZE;
-            let num = (ph.size() + offset + PAGE_SIZE - 1) / PAGE_SIZE;
-            let pa = if self.is_kernel{kernel_page(num)}else{user_page(num)};
-            let pa = pa.unwrap();
-            unsafe {pa.add(offset).copy_from(elf.get_addr(ph.offset()), ph.size())}
-            let pa = pa as usize;
-            let vst = va;
-            let ved = va + num * PAGE_SIZE;
-            let pst = pa;
-            let ped = pa + num * PAGE_SIZE;
-            self.push_area(Area::new(vst, ved, pst, ped));
-        }
-        if self.is_kernel {
-            self.push_area(Area::kernel_code());
-            self.push_area(Area::kernel_data());
-            self.push_area(Area::virtio_area());
-            self.push_area(Area::timer_area());
-        }
-        else {
-            self.push_area(Area::user_func());
-        }
-    } */
-
-    pub fn map(&self, satp : &SATP) {
-        for area in self.areas.iter() {
-            let mut vst = area.vst;
-            let mut pst = area.pst;
-            while vst < area.ved && pst < area.ped {
-                match area.atype {
-                    AreaType::Code => satp.map_code(vst, pst, self.is_kernel),
-                    AreaType::Data => satp.map_data(vst, pst, self.is_kernel),
-                    AreaType::All => satp.map_all(vst, pst, self.is_kernel)
-                }
-                vst += PAGE_SIZE;
-                pst += PAGE_SIZE;
-            }
-        }
-    }
-
-    pub fn map_kernel_trap(&self, satp : &SATP) {
-        let vst = s_trap_vector as usize;
-        satp.map_code(vst, vst, true);
     }
 
     pub fn virt_to_phy(&self, va:usize)->usize {

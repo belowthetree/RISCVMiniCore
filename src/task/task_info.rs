@@ -14,7 +14,6 @@ pub enum TaskState {
 
 pub struct TaskMainInfo {
     pub pid : usize,
-    pub satp : SATP,
     pub state : TaskState,
     pub is_kernel : bool,
     pub tid : Vec<usize>,

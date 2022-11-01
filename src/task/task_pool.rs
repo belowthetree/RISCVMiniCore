@@ -29,18 +29,11 @@ impl TaskPool {
     }
     /// 创建任务，返回任务 ID
     pub fn create_task(&mut self, mut task_area : TaskArea, mut env : Environment)->Option<usize> {
-        task_area.push_area(Area::kernel_code());
-        task_area.push_area(Area::kernel_data());
-        task_area.push_area(Area::virtio_area());
-        task_area.push_area(Area::timer_area());
-        task_area.push_area(Area::rtc_area());
-        task_area.push_area(Area::test_area());
         // TODO，添加内存判断，内存不够返回 None
         let pid = unsafe {PID_COUNT.add() + 1};
         let tid = unsafe {TID_COUNT.add() + 1};
         let main_info = TaskMainInfo {
             pid,
-            satp: SATP::new(),
             state: TaskState::Sleeping,
             is_kernel: task_area.is_kernel,
             tid: vec![tid],
@@ -49,21 +42,17 @@ impl TaskPool {
             resource: TaskResource::new(pid),
             join_num: 0,
         };
-        main_info.task_area.map(&main_info.satp);
-        main_info.task_area.map_kernel_trap(&main_info.satp);
         if main_info.is_kernel {
         }
-        env.satp = main_info.satp.flag;
+        env.satp = main_info.task_area.satp();
 
         let mut stack = Stack::task_stack(tid, main_info.is_kernel);
-        if stack.expand(STACK_PAGE_NUM, &main_info.satp) == Err(()) {
+        if stack.expand(STACK_PAGE_NUM, main_info.task_area.satp()) == Err(()) {
             return None;
         }
         env.epc = main_info.task_area.entry();
         env.regs[Register::SP.val()] = stack.stack_top;
         env.regs[Register::RA.val()] = process_exit as usize;
-        //println!("satp : {:x}, sp {:x} target {:x} target2 {:x}", main_info.satp.flag, stack.stack_top, main_info.satp.get_target(stack.stack_top), main_info.satp.get_target(stack.stack_top - 1));
-        //main_info.satp.print();
         let exec_info = TaskExecutionInfo {
             priority: 0,
             pid,
