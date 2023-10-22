@@ -7,10 +7,8 @@
     alloc_error_handler,
 )]
 
-global_asm!(include_str!("asm/boot.S"));
-global_asm!(include_str!("asm/mem.S"));
-global_asm!(include_str!("asm/trap.S"));
-global_asm!(include_str!("asm/strap.S"));
+pub mod arch;
+pub use arch::boot;
 
 const OSSIGN : &str =
 "
@@ -54,7 +52,7 @@ extern "C" fn kernel_init() {
     interrupt::init(0);
     memory::init();
     task::init(kernel_task as usize);
-	println!("start kernel task fail");
+	  println!("start kernel task fail");
     cpu::dead();
 }
 
@@ -68,18 +66,16 @@ pub fn kernel_task() {
 #[macro_use]
 mod driver;
 mod panic;
-mod interrupt;
 mod util;
 mod memory;
 mod task;
 //mod filesystem;
 
-use interrupt::environment::Environment;
+use arch::interrupt;
 pub use util::cpu;
 pub use driver::uart;
 pub use alloc::string::ToString;
-use core::arch::global_asm;
 
-use crate::interrupt::timer;
+use crate::arch::timer;
 
 extern crate alloc;

@@ -3,7 +3,7 @@
 //! 2022年10月30日 zgg
 
 use alloc::vec::Vec;
-use crate::{memory::{map::SATP, heap::Heap, stack::Stack}, interrupt::environment::Environment};
+use crate::{memory::{heap::Heap, stack::Stack}, arch::trap::Environment};
 use super::{task_resource::TaskResource, task_memory::TaskArea};
 
 #[derive(Debug, Clone, Copy)]

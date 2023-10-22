@@ -10,7 +10,9 @@ mod task_memory;
 mod scheduler;
 
 use task_pool::TaskPool;
-use crate::interrupt::environment::Environment;
+
+use crate::arch::trap::Environment;
+
 use self::{scheduler::Scheduler, task_memory::TaskArea, task_info::TaskExecutionInfo};
 
 pub use task_info::TaskState;

@@ -1,10 +1,9 @@
 //! # 任务池
 //! 2022年10月29日 zgg
 
-use core::arch::global_asm;
-use alloc::{collections::BTreeMap, vec, task, string::{String, ToString}};
+use alloc::{collections::BTreeMap, vec, string::{String, ToString}};
 use tisu_sync::*;
-use crate::{interrupt::environment::{Environment, Register}, memory::{map::SATP, heap::Heap, config::MEMORY_END, stack::{Stack, STACK_PAGE_NUM}}, task::task_memory::Area};
+use crate::{memory::{heap::Heap, config::MEMORY_END, stack::{Stack, STACK_PAGE_NUM}}, arch::trap::{Environment, Register}};
 use super::{task_info::{TaskMainInfo, TaskExecutionInfo, TaskState}, task_memory::TaskArea, task_resource::TaskResource};
 
 static mut PID_COUNT : AtomCounter = AtomCounter::new();
@@ -13,7 +12,6 @@ static mut TID_COUNT : AtomCounter = AtomCounter::new();
 extern "C" {
     fn process_exit();
 }
-global_asm!(include_str!("../asm/func.S"));
 
 pub struct TaskPool {
     task_main_infos : ContentMutex<BTreeMap<usize, TaskMainInfo>>,

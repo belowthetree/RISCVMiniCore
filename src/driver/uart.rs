@@ -7,30 +7,9 @@
 use core::fmt::{Write, Error};
 use core::convert::TryInto;
 
+#[cfg(feature = "qemu_riscv")]
 pub const UART_ADDR : usize = 0x1000_0000;
 const LSR_OFFSET : usize = 5;
-
-#[macro_export]
-macro_rules! print {
-    ($($args:tt)+) => ({
-        use core::fmt::Write;
-        let _ = write!(crate::uart::Uart::new(), $($args)+);
-    });
-}
-
-#[macro_export]
-macro_rules! println
-{
-	() => ({
-		   print!("\r\n")
-		   });
-	($fmt:expr) => ({
-			print!(concat!($fmt, "\r\n"))
-			});
-	($fmt:expr, $($args:tt)+) => ({
-			print!(concat!($fmt, "\r\n"), $($args)+)
-			});
-}
 
 pub struct Uart;
 /// 继承 Write Trait 使得 print 宏得以使用
@@ -57,8 +36,8 @@ impl Uart {
     pub fn init(&mut self) {
         unsafe {
             let ptr = UART_ADDR as *mut u8;
-            // 偏移 3 指出每次传输的位数，恒定 8 位即一字节
-            ptr.add(3).write_volatile(8);
+            // 偏移 3 指出每次传输的位数并开启奇偶校验
+            ptr.add(3).write_volatile(0b11 | 0b0001);
             // 激活 FIFI
             ptr.add(2).write_volatile(1);
             // 激活中断
