@@ -51,6 +51,7 @@ extern "C" fn kernel_init() {
     println!("{}", OSSIGN);
     interrupt::init(0);
     memory::init();
+    cpu::shutdown();
     task::init(kernel_task as usize);
 	  println!("start kernel task fail");
     cpu::dead();

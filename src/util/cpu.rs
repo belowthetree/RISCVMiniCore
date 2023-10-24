@@ -25,6 +25,13 @@ pub fn dead() {
     }
 }
 
+pub fn shutdown() {
+    unsafe {
+        const VIRT_TEST: *mut u32 = 0x10_0000 as *mut u32;
+        VIRT_TEST.write_volatile(0x5555);
+    }
+}
+
 pub fn wait_for_int() {
     unsafe {
         asm!(
