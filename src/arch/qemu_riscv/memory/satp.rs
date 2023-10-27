@@ -1,0 +1,142 @@
+//! ## SATP 管理器
+//! 负责所有映射操作
+//!
+//! 2021年4月27日 zg
+
+use crate::{println, print, arch::traits::{IPageTable, PageType, PrivilegeType}};
+
+use super::page_table::PageTable;
+
+
+const ASID : usize = 0;
+const MODE : usize = 8;
+
+#[derive(Debug, Clone, Copy)]
+pub struct SATP{
+    pub flag : usize,
+}
+
+/// 信息相关方法
+impl SATP {
+    pub fn new() -> Self{
+        SATP{
+            flag : 0,
+        }
+    }
+
+    pub fn from(satp : usize)->Self {
+        Self {
+            flag : satp,
+        }
+    }
+
+    pub fn set(&mut self, ppn:usize) {
+        self.flag = ((ppn >> 12) & 0xfff_ffff_ffff)
+        | ((ASID & 0xffff) << 44) | ((MODE & 0xf) << 60)
+    }
+
+    pub fn get_ppn_addr(&self)->usize{
+        (self.flag & 0xfff_ffff_ffff) << 12
+    }
+
+    pub fn val(&self) -> usize{
+        self.flag as usize
+    }
+
+    pub fn get_page_table(&self) ->&mut PageTable {
+        unsafe {
+            if self.is_map() {
+                &mut *(self.get_ppn_addr() as *mut PageTable)
+            }
+            else {
+                let pt = PageTable::new();
+                let t = self as *const Self as *mut Self;
+                (*t).set(pt as *mut PageTable as usize);
+                pt
+            }
+        }
+    }
+
+    pub fn is_map(&self)->bool{
+        self.get_ppn_addr() != 0
+    }
+
+    pub fn print(&self) {
+        if self.is_map() {
+            unsafe {
+                println!("{:x}", self.get_ppn_addr());
+                let pt = self.get_page_table();
+                pt.print(0);
+            }
+        }
+        else {
+            println!("satp no map");
+        }
+    }
+}
+
+/// 操作方法
+impl SATP {
+    pub fn get_target(&self, va:usize)->usize {
+        self.get_page_table().get_target(va)
+    }
+
+    pub fn map_data(&self, va:usize, pa:usize, is_kernel:bool) {
+        let pt = self.get_page_table();
+        if is_kernel {
+            pt.map_kernel_data(va, pa);
+        }
+        else {
+            pt.map_user_data(va, pa);
+        }
+    }
+
+    pub fn map_code(&self, va:usize, pa:usize, is_kernel:bool) {
+        let pt = self.get_page_table();
+        if is_kernel {
+            pt.map_kernel_code(va, pa);
+        }
+        else {
+            pt.map_user_code(va, pa);
+        }
+    }
+
+    pub fn map_all(&self, va:usize, pa:usize, is_kernel:bool) {
+        let pt = self.get_page_table();
+        if is_kernel {
+            pt.map_kernel(va, pa);
+        }
+        else {
+            pt.map_user(va, pa);
+        }
+    }
+
+    pub fn free_page_table(&self){
+        if self.is_map(){
+            let pt = self.get_page_table();
+            pt.free();
+        }
+    }
+}
+
+impl IPageTable for SATP {
+    fn new()->Self {
+        Self::new()
+    }
+
+    fn map(&self, va : usize, pa : usize, page_type : PageType, privilege : crate::arch::traits::PrivilegeType) {
+        match page_type {
+            PageType::All => self.map_all(va, pa, privilege != PrivilegeType::User),
+            PageType::Code => self.map_code(va, pa, privilege != PrivilegeType::User),
+            PageType::Data => self.map_data(va, pa, privilege != PrivilegeType::User)
+        }
+    }
+
+    fn from_other(other : &Self)->Self {
+        SATP::from(other.flag)
+    }
+
+    fn val(&self)->usize {
+        self.flag
+    }
+}
