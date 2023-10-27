@@ -6,7 +6,7 @@
 
 
 use alloc::vec::Vec;
-use crate::{memory::{map::SATP, free_memory}};
+use crate::{memory::free_memory, arch::{traits::PrivilegeType, memory::PageTableInfo}};
 
 pub const MAX_HEAP_SIZE : usize = 4096;
 
@@ -20,30 +20,30 @@ pub struct Heap{
     virtual_heap_start : usize,
     virtual_heap_top : usize,
     memory_area : Vec<MemoryPool>,
-    is_kernel : bool,
+    privilege : PrivilegeType,
 }
 
 
 /// 以虚拟地址交互，不涉及物理地址
 impl Heap {
     /// 根据大小新建一个，结构体本身存放在内核堆内存里，用户所需在用户内存中申请
-    pub fn new(virtual_heap_start : usize, is_kernel : bool)->Self {
+    pub fn new(virtual_heap_start : usize, privilege : PrivilegeType)->Self {
         Self {
             virtual_heap_start,
             virtual_heap_top : virtual_heap_start,
             memory_area: Vec::new(),
-            is_kernel,
+            privilege,
         }
     }
 
-    pub fn alloc(&mut self, size : usize, satp : &SATP)->(usize, usize) {
+    pub fn alloc(&mut self, size : usize, page : &PageTableInfo)->(usize, usize) {
         if let Some(pool) = self.memory_area.iter_mut().find(|pool| {
             pool.block_size >= size && !pool.full()
         }) {
             pool.alloc().expect("task heap pool alloc err")
         }
         else {
-            self.expand(size, satp);
+            self.expand(size, page);
             let pool = self.memory_area.iter_mut().find(|pool| {
                 pool.block_size >= size && !pool.full()
             }).expect("heap pool find err");
@@ -68,10 +68,10 @@ impl Heap {
         pool.virt_to_phy(va)
     }
 
-    fn expand(&mut self, block_size : usize, satp : &SATP) {
+    fn expand(&mut self, block_size : usize, page : &PageTableInfo) {
         let pool = MemoryPool::new(
-            self.virtual_heap_top, block_size, self.is_kernel);
-        pool.map(satp);
+            self.virtual_heap_top, block_size, self.privilege);
+        pool.map(page);
         self.virtual_heap_top += pool.total_size;
         self.memory_area.push(pool);
         self.memory_area.sort_by(|a, b| {

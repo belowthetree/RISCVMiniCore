@@ -5,8 +5,10 @@
 #![allow(unused)]
 
 use alloc::vec::Vec;
+use crate::arch::memory::{map_page, PageTableInfo};
+use crate::arch::traits::{IPageTable, PageType, PrivilegeType};
+
 use super::heap::MAX_HEAP_SIZE;
-use super::map::SATP;
 use super::*;
 
 pub const MAX_STACK_PAGE : usize = 64;
@@ -46,41 +48,41 @@ pub struct Stack {
     pub stack_top : usize,
     pub stack_bottom : usize,
     pub last_page : usize,      /// 栈剩余可使用的页面
-    pub is_kernel : bool,
+    pub privilege : PrivilegeType,
     area : Vec<StackArea>,
 }
 
 impl Stack {
-    pub fn new(virtual_stack_top : usize, max_page : usize, is_kernel : bool)->Self {
+    pub fn new(virtual_stack_top : usize, max_page : usize, privilege : PrivilegeType)->Self {
         Self {
             stack_top : virtual_stack_top,
             stack_bottom : virtual_stack_top,
-            is_kernel,
+            privilege,
             last_page : max_page,
             area : Vec::new(),
         }
     }
     /// 根据 tid 分配栈顶地址
-    pub fn task_stack(tid : usize, is_kernel : bool)->Self {
+    pub fn task_stack(tid : usize, privilege : PrivilegeType)->Self {
         let heap_end = unsafe {(MEMORY_END + PAGE_SIZE - 1)} / PAGE_SIZE * PAGE_SIZE + MAX_HEAP_SIZE;
         let stack_top = heap_end + (tid + 1) * MAX_STACK_PAGE * 2 * PAGE_SIZE;
         Self {
             stack_top,
             stack_bottom: stack_top,
             last_page: STACK_PAGE_NUM,
-            is_kernel,
+            privilege,
             area: Vec::new(),
         }
     }
 
     /// 向下扩展栈的逻辑地址，使用物理页拼接并映射
-    pub fn expand(&mut self, page_num : usize, satp : usize)->Result<(), ()> {
-        let satp = SATP::from(satp);
+    pub fn expand(&mut self, page_num : usize, page : &PageTableInfo)->Result<(), ()> {
+        let page = PageTableInfo::from_other(page);
         if page_num > self.last_page {
             return Err(())
         }
         let addr;
-        if self.is_kernel {
+        if self.privilege != PrivilegeType::User {
             addr = kernel_page(page_num);
         }
         else {
@@ -94,7 +96,7 @@ impl Stack {
             let mut pst = addr as usize;
             self.area.push(StackArea::new(vst, ved, pst, pst + size));
             while vst < ved {
-                satp.map_data(vst, pst, self.is_kernel);
+                map_page(vst, pst, PageType::Data, self.privilege, &page);
                 vst += PAGE_SIZE;
                 pst += PAGE_SIZE;
             }
@@ -107,7 +109,7 @@ impl Stack {
     }
 
     /// 拷贝另一个栈，包括栈的大小及内容
-    pub fn copy(&mut self, other : &Self, satp : &SATP) {
+    pub fn copy(&mut self, other : &Self, page : &PageTableInfo) {
         self.stack_bottom = self.stack_top - (other.stack_top - other.stack_bottom);
         self.last_page -= (self.stack_top - self.stack_bottom) / PAGE_SIZE;
         let mut vst = self.stack_bottom;
@@ -116,7 +118,7 @@ impl Stack {
             a.vst = vst;
             a.ved = vst + (area.ved - area.vst);
             let num = (area.ved - area.vst) / PAGE_SIZE;
-            if self.is_kernel {
+            if self.privilege != PrivilegeType::User {
                 a.pst = kernel_page(num).unwrap() as usize;
             }
             else {
@@ -127,7 +129,7 @@ impl Stack {
             }
             let mut pst = a.pst;
             while vst < a.ved {
-                satp.map_data(vst, pst, self.is_kernel);
+                map_page(vst, pst, PageType::Data, self.privilege, page);
                 vst += PAGE_SIZE;
                 pst += PAGE_SIZE;
             }

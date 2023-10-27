@@ -4,7 +4,7 @@
 //! 2021年4月28日 zg
 #![allow(dead_code)]
 
-use crate::memory::{block::Block, config::PAGE_SIZE, map::SATP, kernel_page, user_page, free_page};
+use crate::{memory::{block::Block, config::PAGE_SIZE, kernel_page, user_page, free_page}, arch::{memory::{map_page, PageTableInfo}, traits::{PageType, PrivilegeType}}};
 
 /// 16 KB 内使用内存池
 pub const MAX_BLOCK_SIZE : usize = 1024 * 16;
@@ -22,7 +22,7 @@ pub struct MemoryPool {
     use_num : usize,
     block_num : usize,
     inner : Block<bool>,
-    is_kernel : bool,
+    privilege : PrivilegeType,
 }
 
 fn align(n : usize)->usize {
@@ -34,14 +34,14 @@ fn align(n : usize)->usize {
 }
 
 impl MemoryPool {
-    pub fn new(virtual_addr : usize, block_size : usize, is_kernel : bool)->Self {
+    pub fn new(virtual_addr : usize, block_size : usize, privilege : PrivilegeType)->Self {
         let block_size = align(block_size);
         let size;
         if block_size <= MAX_BLOCK_SIZE { size = block_size * POOL_RATE; }
         else { size = block_size; }
         let page_num = (size + PAGE_SIZE - 1) / PAGE_SIZE;
         let physic_addr;
-        if is_kernel {
+        if privilege != PrivilegeType::User {
             physic_addr = kernel_page(page_num).unwrap();
         }
         else {
@@ -61,7 +61,7 @@ impl MemoryPool {
             use_num : 0,
             block_num,
             inner,
-            is_kernel
+            privilege
         }
     }
 
@@ -92,12 +92,12 @@ impl MemoryPool {
         self.use_num -= 1;
     }
 
-    pub fn map(&self, satp : &SATP) {
+    pub fn map(&self, page : &PageTableInfo) {
         for i in 0..self.page_num {
             let t = i * PAGE_SIZE;
             let pa = self.physic_addr + t;
             let va = self.virtual_base + t;
-            satp.map_data(va, pa, self.is_kernel);
+            map_page(va, pa, PageType::Data, self.privilege, page)
         }
     }
 

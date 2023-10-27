@@ -7,4 +7,7 @@ global_asm!(include_str!("qemu_riscv/asm/trap.S"));
 global_asm!(include_str!("qemu_riscv/asm/strap.S"));
 
 #[cfg(feature = "qemu_riscv")]
-pub use super::qemu_riscv::trap::environment::{Environment, Register};
+pub type Environment = super::qemu_riscv::trap::environment::Environment;
+
+#[cfg(feature = "qemu_riscv")]
+pub type Register = super::qemu_riscv::trap::environment::Register;

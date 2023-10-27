@@ -3,7 +3,7 @@
 
 use alloc::{collections::BTreeMap, vec, string::{String, ToString}};
 use tisu_sync::*;
-use crate::{memory::{heap::Heap, config::MEMORY_END, stack::{Stack, STACK_PAGE_NUM}}, arch::trap::{Environment, Register}};
+use crate::{memory::{heap::Heap, config::MEMORY_END, stack::{Stack, STACK_PAGE_NUM}}, arch::{trap::{Environment, Register}, traits::IEnvironment}};
 use super::{task_info::{TaskMainInfo, TaskExecutionInfo, TaskState}, task_memory::TaskArea, task_resource::TaskResource};
 
 static mut PID_COUNT : AtomCounter = AtomCounter::new();
@@ -26,26 +26,24 @@ impl TaskPool {
         }
     }
     /// 创建任务，返回任务 ID
-    pub fn create_task(&mut self, mut task_area : TaskArea, mut env : Environment)->Option<usize> {
+    pub fn create_task(&mut self, task_area : TaskArea, mut env : Environment)->Option<usize> {
         // TODO，添加内存判断，内存不够返回 None
         let pid = unsafe {PID_COUNT.add() + 1};
         let tid = unsafe {TID_COUNT.add() + 1};
         let main_info = TaskMainInfo {
             pid,
             state: TaskState::Sleeping,
-            is_kernel: task_area.is_kernel,
+            privilege: task_area.privilege,
             tid: vec![tid],
-            heap: Heap::new(unsafe {MEMORY_END}, task_area.is_kernel),
+            heap: Heap::new(unsafe {MEMORY_END}, task_area.privilege),
             task_area,
             resource: TaskResource::new(pid),
             join_num: 0,
         };
-        if main_info.is_kernel {
-        }
-        env.satp = main_info.task_area.satp();
+        env.set_page(&main_info.task_area.page);
 
-        let mut stack = Stack::task_stack(tid, main_info.is_kernel);
-        if stack.expand(STACK_PAGE_NUM, main_info.task_area.satp()) == Err(()) {
+        let mut stack = Stack::task_stack(tid, main_info.privilege);
+        if stack.expand(STACK_PAGE_NUM, &main_info.task_area.page) == Err(()) {
             return None;
         }
         env.epc = main_info.task_area.entry();
@@ -56,7 +54,7 @@ impl TaskPool {
             pid,
             task_id : tid,
             state: TaskState::Sleeping,
-            is_kernel: main_info.is_kernel,
+            privilege: main_info.privilege,
             is_main: true,
             trigger_time: 0,
             stack,

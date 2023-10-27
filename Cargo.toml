@@ -4,13 +4,11 @@ version = "0.1.0"
 authors = ["1363558876@qq.com <1363558876@qq.com>"]
 edition = "2018"
 
-test = false
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-default = ["qemu_riscv"]
+default = ["qemu_riscv", "tisu_memory"]
 qemu_riscv = []
+tisu_memory = []
 
 [dependencies]
 tisu-memory = { git = "https://gitee.com/TisuOS/tisu-memory", tag = "v3.1" }

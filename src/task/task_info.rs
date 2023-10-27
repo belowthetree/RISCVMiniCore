@@ -3,7 +3,7 @@
 //! 2022年10月30日 zgg
 
 use alloc::vec::Vec;
-use crate::{memory::{heap::Heap, stack::Stack}, arch::trap::Environment};
+use crate::{memory::{heap::Heap, stack::Stack}, arch::{trap::Environment, traits::PrivilegeType}};
 use super::{task_resource::TaskResource, task_memory::TaskArea};
 
 #[derive(Debug, Clone, Copy)]
@@ -15,7 +15,7 @@ pub enum TaskState {
 pub struct TaskMainInfo {
     pub pid : usize,
     pub state : TaskState,
-    pub is_kernel : bool,
+    pub privilege : PrivilegeType,
     pub tid : Vec<usize>,
     pub heap : Heap,
     pub task_area : TaskArea,
@@ -28,7 +28,7 @@ pub struct TaskExecutionInfo {
     pub pid : usize,
     pub task_id : usize,
     pub state : TaskState,
-    pub is_kernel : bool,
+    pub privilege : PrivilegeType,
     pub is_main : bool,
     pub trigger_time : usize,
     pub stack : Stack,

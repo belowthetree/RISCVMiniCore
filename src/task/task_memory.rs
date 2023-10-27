@@ -3,7 +3,7 @@
 //! 2021年4月29日 zg
 
 use core::cmp::{max, min};
-use crate::{memory::{config::{DATA_START, HEAP_START, KERNEL_PAGE_NUM, MEMORY_START, PAGE_SIZE, RODATA_END}, map::SATP, free_page}};
+use crate::{memory::{config::{DATA_START, HEAP_START, KERNEL_PAGE_NUM, MEMORY_START, PAGE_SIZE, RODATA_END}, free_page}, arch::{traits::{PrivilegeType, PageType}, memory::{map_page, PageTableInfo}}};
 use alloc::vec::Vec;
 
 extern "C" {
@@ -143,21 +143,21 @@ impl Area {
 pub struct TaskArea {
     entry : usize,
     areas : Vec<Area>,
-    satp : SATP,
-    pub is_kernel : bool
+    pub page : PageTableInfo,
+    pub privilege : PrivilegeType
 }
 
 impl TaskArea {
-    pub fn new(entry:usize, is_kernel : bool)->Self {
+    pub fn new(entry:usize, privilege : PrivilegeType)->Self {
         Self {
             entry,
             areas : Vec::new(),
-            satp : SATP::new(),
-            is_kernel
+            page : PageTableInfo::new(),
+            privilege
         }
     }
     pub fn kernel_area(entry:usize)->Self {
-        let mut slf = Self::new(entry, true);
+        let mut slf = Self::new(entry, PrivilegeType::Superviser);
         slf.push_area(Area::kernel_code());
         slf.push_area(Area::kernel_data());
         slf.push_area(Area::virtio_area());
@@ -171,18 +171,14 @@ impl TaskArea {
         self.entry
     }
 
-    pub fn satp(&self)->usize {
-        self.satp.flag
-    }
-
     pub fn push_area(&mut self, area : Area) {
         let mut vst = area.vst;
         let mut pst = area.pst;
         while vst < area.ved && pst < area.ped {
             match area.atype {
-                AreaType::Code => self.satp.map_code(vst, pst, self.is_kernel),
-                AreaType::Data => self.satp.map_data(vst, pst, self.is_kernel),
-                AreaType::All => self.satp.map_all(vst, pst, self.is_kernel)
+                AreaType::Code => map_page(vst, pst, PageType::Code, self.privilege, &self.page),
+                AreaType::Data => map_page(vst, pst, PageType::Data, self.privilege, &self.page),
+                AreaType::All => map_page(vst, pst, PageType::All, self.privilege, &self.page)
             }
             vst += PAGE_SIZE;
             pst += PAGE_SIZE;

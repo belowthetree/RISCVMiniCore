@@ -11,7 +11,7 @@ mod scheduler;
 
 use task_pool::TaskPool;
 
-use crate::arch::trap::Environment;
+use crate::arch::{trap::Environment, traits::PrivilegeType};
 
 use self::{scheduler::Scheduler, task_memory::TaskArea, task_info::TaskExecutionInfo};
 
@@ -32,7 +32,7 @@ pub fn init(entry : usize) {
     unsafe {
         TASK_MANAGER = Some(TaskManager { task_pool: TaskPool::new(), scheduler : Scheduler {} })
     }
-    let task_id = create_task(entry, true).unwrap();
+    let task_id = create_task(entry, PrivilegeType::Superviser).unwrap();
 	set_task_state(task_id, TaskState::Running);
 	schedule();
     let env = get_manager().task_pool.get_task_exec_env(task_id).expect("no env");
@@ -44,13 +44,13 @@ pub fn init(entry : usize) {
 }
 
 /// 创建任务并返回任务 id
-pub fn create_task(entry : usize, is_kernel : bool)->Option<usize> {
+pub fn create_task(entry : usize, privilege : PrivilegeType)->Option<usize> {
     let task_area;
-    if is_kernel {
+    if privilege != PrivilegeType::User {
         task_area = TaskArea::kernel_area(entry);
     }
     else {
-        task_area = TaskArea::new(entry, is_kernel)
+        task_area = TaskArea::new(entry, privilege)
     }
     get_manager().task_pool.create_task(task_area, Environment::new())
 }

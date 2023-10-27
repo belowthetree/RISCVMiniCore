@@ -1,6 +1,8 @@
 //! 中断过程中的环境
 
 #![allow(dead_code)]
+
+use crate::arch::traits::IEnvironment;
 pub enum Register{
     RA = 1,
     SP = 2,
@@ -62,3 +64,8 @@ impl Environment {
     }
 }
 
+impl IEnvironment for Environment {
+    fn set_page<T : crate::arch::traits::IPageTable>(&mut self, page : &T) {
+        self.satp = page.val()
+    }
+}

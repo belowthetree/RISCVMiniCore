@@ -6,6 +6,7 @@ use tisu_memory::{MemoryOp, PageManager, Heap};
 use super::config::*;
 
 /// 内存分配用
+#[cfg(feature = "tisu_memory")]
 type MemoryManager = tisu_memory::MemoryManager<PageManager, Heap<PageManager>>;
 
 static mut USER_HEAP_START : usize = 0;
