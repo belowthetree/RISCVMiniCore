@@ -11,3 +11,9 @@ pub type Environment = super::qemu_riscv::trap::environment::Environment;
 
 #[cfg(feature = "qemu_riscv")]
 pub type Register = super::qemu_riscv::trap::environment::Register;
+
+#[cfg(feature = "qemu_opensbi")]
+pub type Environment = super::qemu_opensbi::trap::environment::Environment;
+
+#[cfg(feature = "qemu_opensbi")]
+pub type Register = super::qemu_opensbi::trap::environment::Register;

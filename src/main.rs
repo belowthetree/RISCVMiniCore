@@ -40,12 +40,15 @@ const OSSIGN : &str =
       ..                                  .....                                      ..
 ";
 
-
+// 非 0 核心从此处执行初始化
+#[cfg(feature = "qemu_riscv")]
 #[no_mangle]
-extern "C" fn kernel_start(hartid : usize) {
+extern "C" fn m_mode_kernel_start(hartid : usize) {
     interrupt::init(hartid);
 }
 
+// 0 号核心在此处执行主要初始化内容
+#[cfg(feature = "qemu_riscv")]
 #[no_mangle]
 extern "C" fn kernel_init() {
     println!("{}", OSSIGN);
@@ -55,6 +58,12 @@ extern "C" fn kernel_init() {
     cpu::shutdown();
 	  println!("start kernel task fail");
     cpu::dead();
+}
+
+#[cfg(feature = "qemu_opensbi")]
+#[no_mangle]
+extern "C" fn kernel_init() {
+    println!("{}", OSSIGN);
 }
 
 pub fn kernel_task() {

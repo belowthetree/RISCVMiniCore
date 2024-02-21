@@ -1,5 +1,9 @@
+#[cfg(feature="qemu_riscv")]
+use super::qemu_riscv::memory::SATP;
+#[cfg(feature="qemu_opensbi")]
+use super::qemu_opensbi::memory::SATP;
 
-use super::{qemu_riscv::memory::SATP, traits::{PrivilegeType, IPageTable}};
+use super::traits::{PrivilegeType, IPageTable};
 
 pub type PageTableInfo = SATP;
 

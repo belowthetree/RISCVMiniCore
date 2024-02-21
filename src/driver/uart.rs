@@ -9,6 +9,8 @@ use core::convert::TryInto;
 
 #[cfg(feature = "qemu_riscv")]
 pub const UART_ADDR : usize = 0x1000_0000;
+#[cfg(feature = "qemu_opensbi")]
+pub const UART_ADDR : usize = 0x1000_0000;
 const LSR_OFFSET : usize = 5;
 
 pub struct Uart;

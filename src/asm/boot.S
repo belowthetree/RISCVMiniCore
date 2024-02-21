@@ -59,7 +59,7 @@ _start:
 	csrw	mie, t3
 	
 	csrr	a0, mhartid
-	la		t1, kernel_start
+	la		t1, m_mode_kernel_start
 	csrw	mepc, t1
 	
 	la		t2, m_trap_vector

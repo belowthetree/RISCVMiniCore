@@ -8,3 +8,6 @@ pub mod traits;
 
 #[cfg(feature="qemu_riscv")]
 mod qemu_riscv;
+
+#[cfg(feature="qemu_opensbi")]
+mod qemu_opensbi;

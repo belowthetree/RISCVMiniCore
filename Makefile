@@ -32,7 +32,10 @@ NET_DEVICE = -device virtio-net-device
 GPU_DEVICE = -device virtio-gpu-device
 
 build: env
-	cargo +nightly build --target=riscv64gc-unknown-none-elf
+	RUSTFLAGS='-Clink-arg=-Tsrc/lds/virt.lds' cargo +nightly build --target=riscv64gc-unknown-none-elf
+
+build_opensbi: env
+	RUSTFLAGS='-Clink-arg=-Tsrc/lds/opensbi.lds' cargo +nightly build --target=riscv64gc-unknown-none-elf --no-default-features --features qemu_opensbi
 # $(CC) $(CFLAGS) $(LINKER_SCRIPT) $(INCLUDES) -o $(OUT) $(SOURCES_ASM) $(LIBS) $(LIB)
 
 $(DISK):

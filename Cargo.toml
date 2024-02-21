@@ -6,8 +6,9 @@ edition = "2018"
 
 
 [features]
-default = ["qemu_riscv", "tisu_memory"]
-qemu_riscv = []
+default = ["qemu_opensbi"]
+qemu_riscv = ["tisu_memory"]
+qemu_opensbi = ["tisu_memory"]
 tisu_memory = []
 
 [dependencies]
