@@ -63,13 +63,18 @@ extern "C" fn kernel_init() {
 #[cfg(feature = "qemu_opensbi")]
 #[no_mangle]
 extern "C" fn kernel_init() {
+    use crate::arch::driver;
+    for _ in (1..50) {
+        driver::write_to_console_byte(33);
+    }
+    cpu::dead();
     println!("{}", OSSIGN);
 }
 
 pub fn kernel_task() {
 	println!("start kernel task");
-  timer::set_next_timer();
-  cpu::shutdown();
+    timer::set_next_timer();
+    cpu::shutdown();
 	cpu::dead();
 }
 

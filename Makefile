@@ -51,6 +51,14 @@ run: build $(DISK)
 	$(QEMU) -machine $(MACH) -cpu $(CPU) -smp $(CPUS) -m $(MEM) $(DEVICE) $(NET_DEVICE) \
 	-nographic -serial mon:stdio -bios none -kernel $(KERNEL_ELF) -rtc base=localtime
 
+run_opensbi: build_opensbi
+	$(QEMU) -machine $(MACH) -cpu $(CPU) -smp $(CPUS) -m $(MEM) $(DEVICE) $(NET_DEVICE) \
+	-nographic -serial mon:stdio -bios bins/fw_jump.bin -kernel $(KERNEL_ELF) -rtc base=localtime
+
+debug_opensbi: build_opensbi $(DISK) objdump
+	$(QEMU) -s -S -machine $(MACH) -cpu $(CPU) -smp $(CPUS) -m $(MEM) $(DEVICE) \
+	-nographic -serial mon:stdio -bios bins/fw_jump.bin -kernel $(KERNEL_ELF) -rtc base=localtime
+
 debug: build $(DISK) objdump
 	$(QEMU) -s -S -machine $(MACH) -cpu $(CPU) -smp $(CPUS) -m $(MEM) $(DEVICE) \
 	-nographic -serial mon:stdio -bios none -kernel $(KERNEL_ELF) -rtc base=localtime

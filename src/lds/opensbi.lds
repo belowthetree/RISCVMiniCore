@@ -1,11 +1,12 @@
 /*
- virt.lds
+ opensbi.lds
  QEMU 链接程序
- 2020年10月6日 zgg
+ 2024年2月22日 zgg
 */
 
 OUTPUT_ARCH( "riscv" )
 
+. = 0x80200000;
 ENTRY( _start )
 
 MEMORY
