@@ -7,6 +7,7 @@ use core::{arch::asm};
 extern crate macro_derive;
 use macro_derive::{generate_sbi_extension_exist_fn, generate_sbi_fn};
 
+#[derive(Debug, Clone, Copy)]
 pub enum ESBIImplementationId {
     BerkeleyBootLoader = 0,
     OpenSBI = 1,
@@ -16,6 +17,23 @@ pub enum ESBIImplementationId {
     Diosix = 5,
     Coffer = 6,
     XenProject = 7,
+    Unknown = 111,
+}
+
+impl ESBIImplementationId {
+    pub fn from(v : usize)->Self {
+        match v {
+            0 => Self::BerkeleyBootLoader,
+            1 => Self::OpenSBI,
+            2 => Self::Xvisor,
+            3 => Self::KVM,
+            4 => Self::RustSBI,
+            5 => Self::Diosix,
+            6 => Self::Coffer,
+            7 => Self::XenProject,
+            _ => Self::Unknown,
+        }
+    }
 }
 
 pub enum EStandardSBIRet {

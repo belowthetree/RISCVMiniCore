@@ -24,7 +24,7 @@ pub fn debug_arch_info() {
         let main = (t.value >> 24) & 0xf7;
         println!("sbi version {} {}.{}", t.error, main, sub);
         t = sbi_get_impl_id();
-        println!("implement id {} {}", t.error, t.value);
+        println!("implement id {} {:?}", t.error, ESBIImplementationId::from(t.value));
         t = sbi_get_impl_version();
         println!("implement version {} {:x}", t.error, t.value);
         for eid in 0 .. 0x10 {
