@@ -5,3 +5,5 @@ pub mod memory;
 pub mod trap;
 pub mod interrupt;
 pub mod sbi;
+
+pub use sbi::*;

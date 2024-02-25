@@ -37,7 +37,6 @@ impl PTE {
 /// ## 页表
 /// Rv39 页表，本身占据一个页表（默认4KB）的大小
 /// 分为三级，页表地址必须以一个页表的大小对齐
-#[repr(packed)]
 pub struct PageTable{
     entry : [PTE; 512],
 }

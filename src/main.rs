@@ -56,17 +56,18 @@ extern "C" fn kernel_init() {
     memory::init();
     task::init(kernel_task as usize);
     cpu::shutdown();
-	  println!("start kernel task fail");
+	println!("start kernel task fail");
     cpu::dead();
 }
 
 #[cfg(feature = "qemu_opensbi")]
 #[no_mangle]
 extern "C" fn kernel_init() {
-    use crate::arch::driver;
-    for _ in (1..50) {
-        driver::write_to_console_byte(33);
-    }
+    use crate::arch::debug_arch_info;
+
+    debug_arch_info();
+    interrupt::init(0);
+	println!("finish int");
     cpu::dead();
     println!("{}", OSSIGN);
 }

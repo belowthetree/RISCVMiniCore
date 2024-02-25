@@ -8,6 +8,6 @@ pub mod timer;
 pub fn init(hartid : usize) {
     unsafe {
         let adrress = (&mut environment::ENVS[hartid] as *mut Environment) as usize;
-        cpu::write_mscratch(adrress);
+        cpu::write_sscratch(adrress);
     }
 }
